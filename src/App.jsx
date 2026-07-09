@@ -147,7 +147,7 @@ const fmtClock = (s) => {
 const fmtShort = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 
-// A block always exposes exercises[] â singles just have one.
+// A block always exposes exercises[] -- singles just have one.
 const blockExercises = (b) => b.type === 'superset' ? b.exercises : [b.exercises[0]];
 
 /* ============================================================
@@ -164,7 +164,7 @@ function RestBar({ total, remaining, label, onSkip, onAdd }) {
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px' }}>
         <div style={{ minWidth: 0 }}>
           <div className="eyebrow" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Rest{label ? ` Â· ${label}` : ''}
+            Rest{label ? ` - ${label}` : ''}
           </div>
           <div className="mono" style={{ fontSize: 34, fontWeight: 600, lineHeight: 1, color: remaining <= 5 ? C.load : C.chalk }}>
             {fmtShort(remaining)}
@@ -179,7 +179,7 @@ function RestBar({ total, remaining, label, onSkip, onAdd }) {
 }
 
 /* ============================================================
-   WEIGHT FIELD â decimal-safe, with plate nudges
+   WEIGHT FIELD -- decimal-safe, with plate nudges
    ============================================================ */
 
 function WeightField({ value, onChange, dim }) {
@@ -215,7 +215,7 @@ function WeightField({ value, onChange, dim }) {
 }
 
 /* ============================================================
-   EXERCISE PICKER â multi-select for supersets
+   EXERCISE PICKER -- multi-select for supersets
    ============================================================ */
 
 function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
@@ -250,7 +250,7 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
           <div style={{ flex: 1, textAlign: 'center', fontWeight: 800, letterSpacing: '.08em', fontSize: 13, textTransform: 'uppercase' }}>
             {multi ? 'Pick 2 or more' : 'Exercises'}
           </div>
-          <button className="btn btn-ghost" onClick={() => setAdding(a => !a)}>{adding ? 'â' : '+ New'}</button>
+          <button className="btn btn-ghost" onClick={() => setAdding(a => !a)}>{adding ? '-' : '+ New'}</button>
         </div>
 
         {adding && (
@@ -276,7 +276,7 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
       <div className="scroll" style={{ flex: 1, overflowY: 'auto', padding: '0 16px 24px' }}>
         {grouped.length === 0 && (
           <div style={{ color: C.iron, padding: '32px 0', textAlign: 'center', fontSize: 14 }}>
-            No exercises match â{q}â. Add it with + New.
+            No exercises match "{q}". Add it with + New.
           </div>
         )}
         {grouped.map(g => (
@@ -310,7 +310,7 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
         <div style={{ padding: '12px 16px calc(12px + env(safe-area-inset-bottom))', borderTop: `1px solid ${C.rack}`, background: C.steel }}>
           <button className="btn btn-primary" style={{ width: '100%', opacity: chosen.length < 2 ? .4 : 1 }}
             disabled={chosen.length < 2} onClick={() => onDone(chosen)}>
-            {chosen.length < 2 ? 'Pick at least 2' : `Create superset Â· ${chosen.length} exercises`}
+            {chosen.length < 2 ? 'Pick at least 2' : `Create superset - ${chosen.length} exercises`}
           </button>
         </div>
       )}
@@ -396,14 +396,14 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
                         <div className="ss-node" style={{ marginTop: 0 }} />
                         <div style={{ flex: 1, fontWeight: 700, fontSize: 14, lineHeight: 1.3 }}>{nameOf(exId)}</div>
                         <div style={{ width: 82, flexShrink: 0 }}>
-                          <input type="text" inputMode="decimal" placeholder="â kg"
+                          <input type="text" inputMode="decimal" placeholder="- kg"
                             value={b.weights?.[exId] ?? ''}
                             onChange={e => setWeight(b.key, exId, cleanWeight(e.target.value))}
                             onBlur={e => e.target.value && setWeight(b.key, exId, showWeight(e.target.value))}
                             style={{ padding: '8px 4px', fontSize: 13 }} />
                         </div>
                         <button onClick={() => dropFromSuperset(b.key, exId)}
-                          style={{ background: 'none', border: 'none', color: C.iron, cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0 }}>â</button>
+                          style={{ background: 'none', border: 'none', color: C.iron, cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0 }}>x</button>
                       </div>
                     ))}
                     <div className="eyebrow" style={{ textAlign: 'right', paddingRight: 26, marginTop: -4 }}>Starting weight</div>
@@ -414,9 +414,9 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
               </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <button onClick={() => move(i, -1)} className="btn btn-ghost" style={{ padding: '6px 9px' }}>â</button>
-                <button onClick={() => move(i, 1)} className="btn btn-ghost" style={{ padding: '6px 9px' }}>â</button>
-                <button onClick={() => remove(b.key)} className="btn btn-ghost" style={{ padding: '6px 9px', color: C.load }}>â</button>
+                <button onClick={() => move(i, -1)} className="btn btn-ghost" style={{ padding: '6px 9px' }}>Up</button>
+                <button onClick={() => move(i, 1)} className="btn btn-ghost" style={{ padding: '6px 9px' }}>Down</button>
+                <button onClick={() => remove(b.key)} className="btn btn-ghost" style={{ padding: '6px 9px', color: C.load }}>x</button>
               </div>
             </div>
 
@@ -431,7 +431,7 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
               {!ss && (
                 <div>
                   <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Kg</div>
-                  <input type="text" inputMode="decimal" placeholder="â"
+                  <input type="text" inputMode="decimal" placeholder="-"
                     value={b.weights?.[b.exercises[0]] ?? ''}
                     onChange={e => setWeight(b.key, b.exercises[0], cleanWeight(e.target.value))}
                     onBlur={e => e.target.value && setWeight(b.key, b.exercises[0], showWeight(e.target.value))} />
@@ -492,10 +492,10 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
       const done = entry?.sets.filter(x => x.done);
       if (done?.length) {
         const top = done.reduce((a, b) => (parseFloat(b.weight) || 0) > (parseFloat(a.weight) || 0) ? b : a);
-        return `${showWeight(top.weight)}kg Ã ${top.reps || 0}`;
+        return `${showWeight(top.weight)}kg x ${top.reps || 0}`;
       }
     }
-    return 'â';
+    return '-';
   };
 
   // entries are keyed by blockKey + exerciseId so the same exercise can appear twice
@@ -521,7 +521,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
 
     if (wasDone || !block.restSec) return;
 
-    // Rest fires when the whole round is ticked â order of ticking doesn't matter.
+    // Rest fires when the whole round is ticked -- order of ticking doesn't matter.
     const roundComplete = blockExercises(block).every(id => {
       const e = nextEntries.find(x => x.blockKey === block.key && x.exerciseId === id);
       return e?.sets[si]?.done;
@@ -592,8 +592,8 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{nameOf(exId)}</div>
                     </div>
                     <div className="mono" style={{ fontSize: 11, color: C.iron, margin: '6px 0 14px', paddingLeft: ss ? 26 : 0 }}>
-                      TARGET {block.targetReps} REPS Â· LAST {prevFor(exId)}
-                      {entry.seedSource === 'plan' && <span style={{ color: C.link }}> Â· PLAN WEIGHT</span>}
+                      TARGET {block.targetReps} REPS - LAST {prevFor(exId)}
+                      {entry.seedSource === 'plan' && <span style={{ color: C.link }}> - PLAN WEIGHT</span>}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr 50px', gap: 8, marginBottom: 8 }}>
@@ -614,7 +614,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                           onChange={v => setField(block.key, exId, si, 'weight', v)} />
                         <button onClick={() => toggleDone(block, exId, si)} className="btn"
                           style={{ padding: '11px 0', background: s.done ? C.go : C.panel, color: s.done ? C.void : C.iron, fontSize: 14 }}>
-                          â
+                          OK
                         </button>
                       </div>
                     ))}
@@ -740,7 +740,7 @@ export default function App() {
             : <div style={{ flex: 1, padding: '24px 16px 32px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28 }}>
                   <div>
-                    <div className="eyebrow">Library Â· {library.length} exercises</div>
+                    <div className="eyebrow">Library - {library.length} exercises</div>
                     <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em' }}>Plans</div>
                   </div>
                   <button className="btn btn-primary" onClick={() => setEditing('new')}>+ New</button>
@@ -750,7 +750,7 @@ export default function App() {
                   <button onClick={() => setTab('train')} className="card"
                     style={{ width: '100%', padding: 16, marginBottom: 20, textAlign: 'left', cursor: 'pointer', borderColor: C.load }}>
                     <div className="eyebrow" style={{ color: C.load }}>In progress</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 4 }}>{active.planName} â resume</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 4 }}>{active.planName} -- resume</div>
                   </button>
                 )}
 
@@ -765,7 +765,7 @@ export default function App() {
                     <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{p.name}</div>
                     <div className="mono" style={{ fontSize: 11, color: C.iron, marginBottom: 14 }}>
                       {p.blocks.reduce((n, b) => n + blockExercises(b).length, 0)} EXERCISES
-                      {p.blocks.some(b => b.type === 'superset') && ` Â· ${p.blocks.filter(b => b.type === 'superset').length} SUPERSET`}
+                      {p.blocks.some(b => b.type === 'superset') && ` - ${p.blocks.filter(b => b.type === 'superset').length} SUPERSET`}
                     </div>
 
                     <div style={{ marginBottom: 16 }}>
@@ -777,7 +777,7 @@ export default function App() {
                               <span style={{ color: C.chalk, paddingLeft: b.type === 'superset' ? 10 : 0,
                                 borderLeft: b.type === 'superset' ? `2px solid ${C.link}` : 'none' }}>{nameOf(exId)}</span>
                               <span className="mono" style={{ color: C.iron, fontSize: 12, whiteSpace: 'nowrap', marginLeft: 12 }}>
-                                {j === 0 && `${b.sets}Ã${b.targetReps}`}
+                                {j === 0 && `${b.sets}x${b.targetReps}`}
                                 {b.weights?.[exId] && ` @ ${b.weights[exId]}kg`}
                               </span>
                             </div>
@@ -789,7 +789,7 @@ export default function App() {
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="btn btn-ghost" onClick={() => setEditing(p)}>Edit</button>
                       <button className="btn btn-ghost" style={{ color: C.load }}
-                        onClick={() => { if (confirm(`Delete â${p.name}â?`)) setPlans(x => x.filter(y => y.id !== p.id)); }}>Delete</button>
+                        onClick={() => { if (confirm(`Delete "${p.name}"?`)) setPlans(x => x.filter(y => y.id !== p.id)); }}>Delete</button>
                       <div style={{ flex: 1 }} />
                       <button className="btn btn-primary" disabled={!!active} style={{ opacity: active ? .4 : 1 }}
                         onClick={() => startSession(p)}>Start</button>
@@ -811,7 +811,7 @@ export default function App() {
 
             {sessions.length === 0 && (
               <div style={{ color: C.iron, fontSize: 14, lineHeight: 1.6, padding: '40px 0', textAlign: 'center' }}>
-                Finished sessions land here. Export regularly â this data lives on this device only.
+                Finished sessions land here. Export regularly -- this data lives on this device only.
               </div>
             )}
 
@@ -827,10 +827,10 @@ export default function App() {
                       <div>
                         <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'Archivo' }}>{s.planName}</div>
                         <div className="mono" style={{ fontSize: 11, color: C.iron, marginTop: 4 }}>
-                          {fmtDate(s.startedAt).toUpperCase()} Â· {mins} MIN Â· {showWeight(volume)} KG VOLUME
+                          {fmtDate(s.startedAt).toUpperCase()} - {mins} MIN - {showWeight(volume)} KG VOLUME
                         </div>
                       </div>
-                      <span style={{ color: C.iron, fontSize: 18 }}>{open ? 'â' : '+'}</span>
+                      <span style={{ color: C.iron, fontSize: 18 }}>{open ? '-' : '+'}</span>
                     </div>
                   </button>
 
@@ -865,7 +865,7 @@ export default function App() {
           <div className="tapbar">
             {[['train', 'Train'], ['plans', 'Plans'], ['history', 'History']].map(([k, label]) => (
               <button key={k} className={`tap ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
-                {label}{k === 'train' && active ? ' â¢' : ''}
+                {label}{k === 'train' && active ? ' -' : ''}
               </button>
             ))}
           </div>
