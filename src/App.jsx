@@ -150,6 +150,13 @@ const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-AU', { day: 'numer
 // A block always exposes exercises[] -- singles just have one.
 const blockExercises = (b) => b.type === 'superset' ? b.exercises : [b.exercises[0]];
 
+// A block is complete once every set of every exercise inside it is ticked.
+// An entry with zero sets (e.g. rounds all removed) does not count as complete.
+const isBlockComplete = (block, entries) => blockExercises(block).every(exId => {
+  const entry = entries.find(e => e.blockKey === block.key && e.exerciseId === exId);
+  return entry && entry.sets.length > 0 && entry.sets.every(s => s.done);
+});
+
 /* ============================================================
    REST BAR
    ============================================================ */
@@ -567,13 +574,30 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.name}</div>
         </div>
 
-        {plan.blocks.map(block => {
+        {(() => {
+          const completion = plan.blocks.map(block => isBlockComplete(block, session.entries));
+          const currentIdx = completion.findIndex(done => !done); // -1 if everything is done
+          return plan.blocks.map((block, blockIdx) => {
           const ss = block.type === 'superset';
           const exs = blockExercises(block);
           const rounds = entryOf(block.key, exs[0])?.sets.length || 0;
+          const complete = completion[blockIdx];
+          const isCurrent = blockIdx === currentIdx;
 
           return (
-            <div key={block.key} className="card" style={{ padding: 16, marginBottom: 14, borderColor: ss ? C.link : C.rack }}>
+            <div key={block.key} className="card" style={{
+              padding: 16, marginBottom: 14,
+              borderColor: isCurrent ? C.load : (ss ? C.link : C.rack),
+              borderWidth: isCurrent ? 2 : 1,
+              opacity: complete ? 0.55 : 1,
+              transition: 'opacity .2s, border-color .2s',
+            }}>
+              {isCurrent && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+                  <span className="eyebrow" style={{ color: C.load }}>Current</span>
+                  <div style={{ flex: 1, height: 1, background: C.rack }} />
+                </div>
+              )}
               {ss && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
                   <span className="eyebrow" style={{ color: C.link }}>Superset</span>
@@ -627,7 +651,8 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
               </button>
             </div>
           );
-        })}
+        });
+        })()}
 
         <button className="btn btn-ghost" style={{ width: '100%', marginTop: 16, color: C.load, borderColor: C.load }} onClick={onAbandon}>
           Discard session
