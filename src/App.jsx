@@ -544,7 +544,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
     onUpdate({
       ...session,
       entries: session.entries.map(e => e.blockKey !== block.key ? e : {
-        ...e, sets: [...e.sets, { reps: '', weight: '', done: false }]
+        ...e, sets: [...e.sets, { reps: String(block.targetReps || ''), weight: '', done: false }]
       }),
     });
   };
@@ -709,7 +709,7 @@ export default function App() {
         entries.push({
           blockKey: b.key, exerciseId: exId, blockType: b.type,
           seedSource: prior ? 'last' : (planned ? 'plan' : null),
-          sets: Array.from({ length: b.sets }, () => ({ reps: '', weight: seed, done: false })),
+          sets: Array.from({ length: b.sets }, () => ({ reps: String(b.targetReps || ''), weight: seed, done: false })),
         });
       });
     });
