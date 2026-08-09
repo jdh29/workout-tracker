@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from 'react';
    DATA
    ============================================================ */
 
-const CATEGORIES = ['Barbell', 'Dumbbell', 'Resistance Cables', 'Bodyweight', 'Core'];
+const CATEGORIES = ['Barbell', 'Dumbbell', 'Kettlebell', 'Resistance Cables', 'Bodyweight', 'Core'];
 
 const BUILT_IN = [
   { id: 'bb-back-squat', name: 'Back Squat', category: 'Barbell' },
@@ -51,6 +51,10 @@ const BUILT_IN = [
   { id: 'co-ab-rollout', name: 'Ab Rollout', category: 'Core' },
   { id: 'co-plank', name: 'Plank', category: 'Core' },
   { id: 'co-side-bends', name: 'Side Bends', category: 'Core' },
+
+  { id: 'kb-swings', name: 'Kettlebell Swings', category: 'Kettlebell' },
+  { id: 'kb-goblet-squat', name: 'Kettlebell Goblet Squat', category: 'Kettlebell' },
+  { id: 'kb-high-pulls', name: 'Kettlebell High Pulls', category: 'Kettlebell' },
 ];
 
 /* ============================================================
@@ -147,6 +151,59 @@ const fmtClock = (s) => {
 const fmtShort = (s) => `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 const fmtDate = (iso) => new Date(iso).toLocaleDateString('en-AU', { day: 'numeric', month: 'short', year: 'numeric' });
 
+// Shared audio context -- created lazily on first use, reused after (iOS caps how many contexts can exist).
+let sharedAudioCtx = null;
+const getAudioCtx = () => {
+  try {
+    if (!sharedAudioCtx) {
+      const Ctx = window.AudioContext || window.webkitAudioContext;
+      if (!Ctx) return null;
+      sharedAudioCtx = new Ctx();
+    }
+    // iOS suspends the context until a user gesture resumes it; the Start/tick that led here counts.
+    if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+    return sharedAudioCtx;
+  } catch { return null; }
+};
+
+// Plays a short sequence of beeps. freq in Hz, each tone lasts durMs with gapMs of silence after.
+// Square wave + near-max gain + fast attack: built to cut through loud music, not to sound pleasant.
+const playTones = (tones) => {
+  const ctx = getAudioCtx();
+  if (!ctx) return;
+  try {
+    let t = ctx.currentTime;
+    tones.forEach(({ freq, durMs, gapMs }) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.0001, t);
+      gain.gain.exponentialRampToValueAtTime(0.9, t + 0.008);
+      gain.gain.exponentialRampToValueAtTime(0.0001, t + durMs / 1000);
+      osc.connect(gain).connect(ctx.destination);
+      osc.start(t);
+      osc.stop(t + durMs / 1000 + 0.02);
+      t += (durMs + (gapMs || 0)) / 1000;
+    });
+  } catch { /* audio is a nicety -- never let it break the timer */ }
+};
+
+// Timed-set finished: four sharp high beeps -- built to cut through loud music.
+const playSetAlert = () => playTones([
+  { freq: 2400, durMs: 120, gapMs: 70 },
+  { freq: 2400, durMs: 120, gapMs: 70 },
+  { freq: 2400, durMs: 120, gapMs: 70 },
+  { freq: 2400, durMs: 120, gapMs: 0 },
+]);
+
+// Rest finished: three lower, longer tones -- distinct pattern and pitch from the set alert by ear.
+const playRestAlert = () => playTones([
+  { freq: 1400, durMs: 220, gapMs: 100 },
+  { freq: 1400, durMs: 220, gapMs: 100 },
+  { freq: 1400, durMs: 220, gapMs: 0 },
+]);
+
 // A block always exposes exercises[] -- singles just have one.
 const blockExercises = (b) => b.type === 'superset' ? b.exercises : [b.exercises[0]];
 
@@ -186,8 +243,62 @@ function RestBar({ total, remaining, label, onSkip, onAdd }) {
 }
 
 /* ============================================================
-   WEIGHT FIELD -- decimal-safe, with plate nudges
+   TIMER FIELD -- countdown for timed sets. Alerts at zero,
+   never auto-completes the set; the person still taps OK.
    ============================================================ */
+
+function TimerField({ targetSeconds, done }) {
+  const [phase, setPhase] = useState('idle'); // idle | running | done_ringing
+  const [remaining, setRemaining] = useState(targetSeconds || 40);
+
+  useEffect(() => { if (phase === 'idle') setRemaining(targetSeconds || 40); }, [targetSeconds, phase]);
+
+  useEffect(() => {
+    if (phase !== 'running') return;
+    if (remaining <= 0) {
+      setPhase('done_ringing');
+      try { navigator.vibrate?.([200, 100, 200, 100, 200]); } catch {}
+      playSetAlert();
+      return;
+    }
+    const t = setTimeout(() => setRemaining(r => r - 1), 1000);
+    return () => clearTimeout(t);
+  }, [phase, remaining]);
+
+  if (done) {
+    return <div className="mono" style={{ textAlign: 'center', color: C.iron, fontSize: 13, paddingTop: 12 }}>
+      {fmtShort(targetSeconds || 0)}
+    </div>;
+  }
+
+  if (phase === 'idle') {
+    return (
+      <button className="btn btn-panel" style={{ width: '100%', padding: '11px 0', fontSize: 12 }}
+        onClick={() => { setRemaining(targetSeconds || 40); setPhase('running'); }}>
+        Start {fmtShort(targetSeconds || 40)}
+      </button>
+    );
+  }
+
+  if (phase === 'done_ringing') {
+    return (
+      <button className="btn" style={{ width: '100%', padding: '11px 0', fontSize: 12, background: C.load, color: '#fff' }}
+        onClick={() => setPhase('idle')}>
+        Time up -- tap OK
+      </button>
+    );
+  }
+
+  return (
+    <button className="btn btn-panel" style={{ width: '100%', padding: '9px 0' }}
+      onClick={() => setPhase('idle')}>
+      <span className="mono" style={{ fontSize: 16, fontWeight: 600 }}>{fmtShort(remaining)}</span>
+      <span className="eyebrow" style={{ display: 'block', marginTop: 2 }}>Tap to cancel</span>
+    </button>
+  );
+}
+
+
 
 function WeightField({ value, onChange, dim }) {
   const [focused, setFocused] = useState(false);
@@ -344,7 +455,9 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
       type: picking === 'superset' ? 'superset' : 'single',
       exercises: ids,
       sets: 3,
+      mode: 'reps',
       targetReps: 10,
+      targetSeconds: 40,
       restSec: picking === 'superset' ? 60 : 90,
       weights: Object.fromEntries(ids.map(id => [id, ''])), // per-exercise starting weight
     }]);
@@ -427,14 +540,41 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: ss ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8 }}>
-              {[[ss ? 'Rounds' : 'Sets', 'sets', 1], ['Reps', 'targetReps', 1], ['Rest (s)', 'restSec', 15]].map(([label, field, step]) => (
-                <div key={field}>
-                  <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>{label}</div>
-                  <input type="number" inputMode="numeric" step={step} value={b[field]}
-                    onChange={e => update(b.key, field, Math.max(0, parseInt(e.target.value) || 0))} />
-                </div>
+            <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
+              {['reps', 'timed'].map(m => (
+                <button key={m} onClick={() => update(b.key, 'mode', m)} className="btn"
+                  style={{ flex: 1, padding: '9px 0', fontSize: 11,
+                    background: (b.mode || 'reps') === m ? C.load : C.panel,
+                    color: (b.mode || 'reps') === m ? '#fff' : C.iron }}>
+                  {m === 'reps' ? 'Reps' : 'Timed'}
+                </button>
               ))}
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: ss ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8 }}>
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>{ss ? 'Rounds' : 'Sets'}</div>
+                <input type="number" inputMode="numeric" step={1} value={b.sets}
+                  onChange={e => update(b.key, 'sets', Math.max(0, parseInt(e.target.value) || 0))} />
+              </div>
+              {(b.mode || 'reps') === 'reps' ? (
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Reps</div>
+                  <input type="number" inputMode="numeric" step={1} value={b.targetReps}
+                    onChange={e => update(b.key, 'targetReps', Math.max(0, parseInt(e.target.value) || 0))} />
+                </div>
+              ) : (
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Seconds</div>
+                  <input type="number" inputMode="numeric" step={5} value={b.targetSeconds ?? 40}
+                    onChange={e => update(b.key, 'targetSeconds', Math.max(0, parseInt(e.target.value) || 0))} />
+                </div>
+              )}
+              <div>
+                <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Rest (s)</div>
+                <input type="number" inputMode="numeric" step={15} value={b.restSec}
+                  onChange={e => update(b.key, 'restSec', Math.max(0, parseInt(e.target.value) || 0))} />
+              </div>
               {!ss && (
                 <div>
                   <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Kg</div>
@@ -486,7 +626,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
 
   useEffect(() => {
     if (!rest) return;
-    if (rest.remaining <= 0) { setRest(null); try { navigator.vibrate?.(300); } catch {} return; }
+    if (rest.remaining <= 0) { setRest(null); try { navigator.vibrate?.(300); } catch {} playRestAlert(); return; }
     const t = setTimeout(() => setRest(r => r && { ...r, remaining: r.remaining - 1 }), 1000);
     return () => clearTimeout(t);
   }, [rest]);
@@ -498,6 +638,10 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
       const entry = s.entries.find(e => e.exerciseId === exerciseId);
       const done = entry?.sets.filter(x => x.done);
       if (done?.length) {
+        if (entry.mode === 'timed') {
+          const longest = done.reduce((a, b) => (b.seconds || 0) > (a.seconds || 0) ? b : a);
+          return fmtShort(longest.seconds || 0);
+        }
         const top = done.reduce((a, b) => (parseFloat(b.weight) || 0) > (parseFloat(a.weight) || 0) ? b : a);
         return `${showWeight(top.weight)}kg x ${top.reps || 0}`;
       }
@@ -544,7 +688,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
     onUpdate({
       ...session,
       entries: session.entries.map(e => e.blockKey !== block.key ? e : {
-        ...e, sets: [...e.sets, { reps: String(block.targetReps || ''), weight: '', done: false }]
+        ...e, sets: [...e.sets, { reps: String(block.targetReps || ''), seconds: block.targetSeconds || 0, weight: '', done: false }]
       }),
     });
   };
@@ -616,13 +760,15 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{nameOf(exId)}</div>
                     </div>
                     <div className="mono" style={{ fontSize: 11, color: C.iron, margin: '6px 0 14px', paddingLeft: ss ? 26 : 0 }}>
-                      TARGET {block.targetReps} REPS - LAST {prevFor(exId)}
+                      {(block.mode === 'timed')
+                        ? `TARGET ${fmtShort(block.targetSeconds || 0)}`
+                        : `TARGET ${block.targetReps} REPS`} - LAST {prevFor(exId)}
                       {entry.seedSource === 'plan' && <span style={{ color: C.link }}> - PLAN WEIGHT</span>}
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr 50px', gap: 8, marginBottom: 8 }}>
                       <div className="eyebrow" style={{ textAlign: 'center' }}>{ss ? 'RD' : '#'}</div>
-                      <div className="eyebrow" style={{ textAlign: 'center' }}>Reps</div>
+                      <div className="eyebrow" style={{ textAlign: 'center' }}>{block.mode === 'timed' ? 'Time' : 'Reps'}</div>
                       <div className="eyebrow" style={{ textAlign: 'center' }}>Kg</div>
                       <div />
                     </div>
@@ -631,9 +777,13 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                       <div key={si} style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr 50px', gap: 8,
                         marginBottom: 8, alignItems: 'start' }}>
                         <div className="mono" style={{ textAlign: 'center', color: C.iron, fontSize: 13, paddingTop: 12 }}>{si + 1}</div>
-                        <input type="number" inputMode="numeric" value={s.reps} placeholder={String(block.targetReps)}
-                          onChange={e => setField(block.key, exId, si, 'reps', e.target.value)}
-                          style={{ opacity: s.done ? .5 : 1 }} />
+                        {block.mode === 'timed' ? (
+                          <TimerField targetSeconds={block.targetSeconds} done={s.done} />
+                        ) : (
+                          <input type="number" inputMode="numeric" value={s.reps} placeholder={String(block.targetReps)}
+                            onChange={e => setField(block.key, exId, si, 'reps', e.target.value)}
+                            style={{ opacity: s.done ? .5 : 1 }} />
+                        )}
                         <WeightField value={s.weight} dim={s.done}
                           onChange={v => setField(block.key, exId, si, 'weight', v)} />
                         <button onClick={() => toggleDone(block, exId, si)} className="btn"
@@ -707,9 +857,11 @@ export default function App() {
         const planned = b.weights?.[exId] || '';
         const seed = prior ?? planned;
         entries.push({
-          blockKey: b.key, exerciseId: exId, blockType: b.type,
+          blockKey: b.key, exerciseId: exId, blockType: b.type, mode: b.mode || 'reps',
           seedSource: prior ? 'last' : (planned ? 'plan' : null),
-          sets: Array.from({ length: b.sets }, () => ({ reps: String(b.targetReps || ''), weight: seed, done: false })),
+          sets: Array.from({ length: b.sets }, () => ({
+            reps: String(b.targetReps || ''), seconds: b.targetSeconds || 0, weight: seed, done: false,
+          })),
         });
       });
     });
@@ -802,7 +954,7 @@ export default function App() {
                               <span style={{ color: C.chalk, paddingLeft: b.type === 'superset' ? 10 : 0,
                                 borderLeft: b.type === 'superset' ? `2px solid ${C.link}` : 'none' }}>{nameOf(exId)}</span>
                               <span className="mono" style={{ color: C.iron, fontSize: 12, whiteSpace: 'nowrap', marginLeft: 12 }}>
-                                {j === 0 && `${b.sets}x${b.targetReps}`}
+                                {j === 0 && (b.mode === 'timed' ? `${b.sets}x${fmtShort(b.targetSeconds || 0)}` : `${b.sets}x${b.targetReps}`)}
                                 {b.weights?.[exId] && ` @ ${b.weights[exId]}kg`}
                               </span>
                             </div>
@@ -842,7 +994,7 @@ export default function App() {
 
             {sessions.map(s => {
               const open = openSession === s.id;
-              const volume = s.entries.reduce((n, e) => n + e.sets.reduce((m, x) => m + (parseFloat(x.weight) || 0) * (parseInt(x.reps) || 0), 0), 0);
+              const volume = s.entries.reduce((n, e) => e.mode === 'timed' ? n : n + e.sets.reduce((m, x) => m + (parseFloat(x.weight) || 0) * (parseInt(x.reps) || 0), 0), 0);
               const mins = Math.round((new Date(s.endedAt) - new Date(s.startedAt)) / 60000);
               return (
                 <div key={s.id} className="card" style={{ padding: 16, marginBottom: 12 }}>
@@ -868,7 +1020,9 @@ export default function App() {
                           {e.sets.map((x, j) => (
                             <div key={j} className="mono" style={{ display: 'flex', gap: 16, fontSize: 12, color: C.iron, padding: '3px 0' }}>
                               <span style={{ width: 20 }}>{j + 1}</span>
-                              <span style={{ color: C.chalk }}>{x.reps || 0} reps</span>
+                              {e.mode === 'timed'
+                                ? <span style={{ color: C.chalk }}>{fmtShort(x.seconds || 0)}</span>
+                                : <span style={{ color: C.chalk }}>{x.reps || 0} reps</span>}
                               <span style={{ color: C.chalk }}>{showWeight(x.weight)} kg</span>
                             </div>
                           ))}
