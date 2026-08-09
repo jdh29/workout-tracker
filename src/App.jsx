@@ -107,6 +107,7 @@ const C = {
   rack: '#2E3036',
   go: '#4ADE80',
   link: '#5B93D3',
+  circuit: '#E8B23C',
 };
 
 const CSS = `
@@ -205,7 +206,7 @@ const playRestAlert = () => playTones([
 ]);
 
 // A block always exposes exercises[] -- singles just have one.
-const blockExercises = (b) => b.type === 'superset' ? b.exercises : [b.exercises[0]];
+const blockExercises = (b) => (b.type === 'superset' || b.type === 'circuit') ? b.exercises : [b.exercises[0]];
 
 // A block is complete once every set of every exercise inside it is ticked.
 // An entry with zero sets (e.g. rounds all removed) does not count as complete.
@@ -336,7 +337,8 @@ function WeightField({ value, onChange, dim }) {
    EXERCISE PICKER -- multi-select for supersets
    ============================================================ */
 
-function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
+function ExercisePicker({ library, onDone, onClose, onAddCustom, mode }) {
+  const multi = mode === 'superset' || mode === 'circuit';
   const [q, setQ] = useState('');
   const [chosen, setChosen] = useState([]);
   const [adding, setAdding] = useState(false);
@@ -428,7 +430,7 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
         <div style={{ padding: '12px 16px calc(12px + env(safe-area-inset-bottom))', borderTop: `1px solid ${C.rack}`, background: C.steel }}>
           <button className="btn btn-primary" style={{ width: '100%', opacity: chosen.length < 2 ? .4 : 1 }}
             disabled={chosen.length < 2} onClick={() => onDone(chosen)}>
-            {chosen.length < 2 ? 'Pick at least 2' : `Create superset - ${chosen.length} exercises`}
+            {chosen.length < 2 ? 'Pick at least 2' : `Create ${mode} - ${chosen.length} exercises`}
           </button>
         </div>
       )}
@@ -443,22 +445,26 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, multi }) {
 function PlanEditor({ plan, library, onSave, onCancel }) {
   const [name, setName] = useState(plan?.name || '');
   const [blocks, setBlocks] = useState(plan?.blocks || []);
-  const [picking, setPicking] = useState(null); // null | 'single' | 'superset'
+  const [picking, setPicking] = useState(null); // null | 'single' | 'superset' | 'circuit'
   const [customs, setCustoms] = useState([]);
 
   const fullLib = [...library, ...customs];
   const nameOf = id => fullLib.find(e => e.id === id)?.name || 'Unknown';
 
   const addBlock = (ids) => {
+    const isCircuit = picking === 'circuit';
+    const isSuperset = picking === 'superset';
     setBlocks(b => [...b, {
       key: uid(),
-      type: picking === 'superset' ? 'superset' : 'single',
+      type: isCircuit ? 'circuit' : (isSuperset ? 'superset' : 'single'),
       exercises: ids,
-      sets: 3,
-      mode: 'reps',
+      sets: isCircuit ? 4 : 3, // "sets" doubles as round count for supersets and circuits
+      mode: isCircuit ? 'timed' : 'reps',
       targetReps: 10,
       targetSeconds: 40,
-      restSec: picking === 'superset' ? 60 : 90,
+      restSec: isSuperset ? 60 : 90,          // rest after a round, for single/superset
+      exerciseRestSec: 20,                     // circuit only: rest between exercises within a round
+      roundRestSec: 90,                        // circuit only: rest after finishing all exercises in a round
       weights: Object.fromEntries(ids.map(id => [id, ''])), // per-exercise starting weight
     }]);
     setPicking(null);
@@ -489,7 +495,7 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
   return (
     <div style={{ padding: '20px 16px 40px' }}>
       {picking && (
-        <ExercisePicker library={fullLib} multi={picking === 'superset'} onDone={addBlock}
+        <ExercisePicker library={fullLib} mode={picking} onDone={addBlock}
           onClose={() => setPicking(null)} onAddCustom={ex => setCustoms(c => [...c, ex])} />
       )}
 
@@ -499,16 +505,18 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
 
       {blocks.map((b, i) => {
         const ss = b.type === 'superset';
+        const cc = b.type === 'circuit';
         return (
-          <div key={b.key} className="card" style={{ padding: 16, marginBottom: 12, borderColor: ss ? C.link : C.rack }}>
+          <div key={b.key} className="card" style={{ padding: 16, marginBottom: 12, borderColor: cc ? C.circuit : (ss ? C.link : C.rack) }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 14 }}>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 8 }}>
                   <span className="mono" style={{ fontSize: 11, color: C.iron }}>{String(i + 1).padStart(2, '0')}</span>
                   {ss && <span className="eyebrow" style={{ color: C.link }}>Superset</span>}
+                  {cc && <span className="eyebrow" style={{ color: C.circuit }}>Circuit</span>}
                 </div>
 
-                {ss ? (
+                {(ss || cc) ? (
                   <div style={{ position: 'relative', paddingLeft: 0 }}>
                     <div className="ss-rail" />
                     {b.exercises.map(exId => (
@@ -551,9 +559,9 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
               ))}
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: ss ? '1fr 1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: (ss || cc) ? '1fr 1fr' : '1fr 1fr 1fr 1fr', gap: 8 }}>
               <div>
-                <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>{ss ? 'Rounds' : 'Sets'}</div>
+                <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>{(ss || cc) ? 'Rounds' : 'Sets'}</div>
                 <input type="number" inputMode="numeric" step={1} value={b.sets}
                   onChange={e => update(b.key, 'sets', Math.max(0, parseInt(e.target.value) || 0))} />
               </div>
@@ -570,12 +578,14 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
                     onChange={e => update(b.key, 'targetSeconds', Math.max(0, parseInt(e.target.value) || 0))} />
                 </div>
               )}
-              <div>
-                <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Rest (s)</div>
-                <input type="number" inputMode="numeric" step={15} value={b.restSec}
-                  onChange={e => update(b.key, 'restSec', Math.max(0, parseInt(e.target.value) || 0))} />
-              </div>
-              {!ss && (
+              {!cc && (
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Rest (s)</div>
+                  <input type="number" inputMode="numeric" step={15} value={b.restSec}
+                    onChange={e => update(b.key, 'restSec', Math.max(0, parseInt(e.target.value) || 0))} />
+                </div>
+              )}
+              {!ss && !cc && (
                 <div>
                   <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Kg</div>
                   <input type="text" inputMode="decimal" placeholder="-"
@@ -586,8 +596,24 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
               )}
             </div>
 
+            {cc && (
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 8 }}>
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Rest between exercises (s)</div>
+                  <input type="number" inputMode="numeric" step={5} value={b.exerciseRestSec ?? 20}
+                    onChange={e => update(b.key, 'exerciseRestSec', Math.max(0, parseInt(e.target.value) || 0))} />
+                </div>
+                <div>
+                  <div className="eyebrow" style={{ marginBottom: 6, textAlign: 'center' }}>Rest after round (s)</div>
+                  <input type="number" inputMode="numeric" step={15} value={b.roundRestSec ?? 90}
+                    onChange={e => update(b.key, 'roundRestSec', Math.max(0, parseInt(e.target.value) || 0))} />
+                </div>
+              </div>
+            )}
+
             <div className="mono" style={{ fontSize: 10, color: C.iron, marginTop: 12, lineHeight: 1.5 }}>
               {ss && <>REST RUNS ONCE PER ROUND, AFTER ALL EXERCISES.<br /></>}
+              {cc && <>EACH EXERCISE RUNS IN ORDER, WITH A SHORT REST BETWEEN. A LONGER REST FOLLOWS EACH FULL ROUND.<br /></>}
               WEIGHT IS A STARTING POINT. SESSIONS PRE-FILL FROM YOUR LAST LOGGED SET.
             </div>
           </div>
@@ -597,6 +623,7 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
       <div style={{ display: 'flex', gap: 8, marginTop: 8, marginBottom: 28 }}>
         <button className="btn btn-panel" style={{ flex: 1 }} onClick={() => setPicking('single')}>+ Exercise</button>
         <button className="btn btn-panel" style={{ flex: 1, color: C.link }} onClick={() => setPicking('superset')}>+ Superset</button>
+        <button className="btn btn-panel" style={{ flex: 1, color: C.circuit }} onClick={() => setPicking('circuit')}>+ Circuit</button>
       </div>
 
       <div style={{ display: 'flex', gap: 10 }}>
@@ -671,9 +698,26 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
     });
     onUpdate({ ...session, entries: nextEntries });
 
-    if (wasDone || !block.restSec) return;
+    if (wasDone) return;
 
-    // Rest fires when the whole round is ticked -- order of ticking doesn't matter.
+    if (block.type === 'circuit') {
+      // Rest fires after every exercise -- short between exercises, long after the last one in a round.
+      // No rest at all after the very last exercise of the very last round; the circuit is simply done.
+      const exIdx = block.exercises.indexOf(exId);
+      const isLastExercise = exIdx === block.exercises.length - 1;
+      const isLastRound = si === block.sets - 1;
+      if (isLastExercise && isLastRound) return;
+
+      const dur = isLastExercise ? (block.roundRestSec ?? 90) : (block.exerciseRestSec ?? 20);
+      if (!dur) return;
+      const label = isLastExercise ? `Round ${si + 1} complete` : nameOf(exId);
+      setRest({ total: dur, remaining: dur, label });
+      return;
+    }
+
+    if (!block.restSec) return;
+
+    // Superset/single: rest fires when the whole round is ticked -- order of ticking doesn't matter.
     const roundComplete = blockExercises(block).every(id => {
       const e = nextEntries.find(x => x.blockKey === block.key && x.exerciseId === id);
       return e?.sets[si]?.done;
@@ -724,6 +768,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
           const currentIdx = completion.findIndex(done => !done); // -1 if everything is done
           return plan.blocks.map((block, blockIdx) => {
           const ss = block.type === 'superset';
+          const cc = block.type === 'circuit';
           const exs = blockExercises(block);
           const rounds = entryOf(block.key, exs[0])?.sets.length || 0;
           const complete = completion[blockIdx];
@@ -732,7 +777,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
           return (
             <div key={block.key} className="card" style={{
               padding: 16, marginBottom: 14,
-              borderColor: isCurrent ? C.load : (ss ? C.link : C.rack),
+              borderColor: isCurrent ? C.load : (cc ? C.circuit : (ss ? C.link : C.rack)),
               borderWidth: isCurrent ? 2 : 1,
               opacity: complete ? 0.55 : 1,
               transition: 'opacity .2s, border-color .2s',
@@ -750,6 +795,15 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                   <span className="mono" style={{ fontSize: 10, color: C.iron }}>REST {block.restSec}s AFTER ROUND</span>
                 </div>
               )}
+              {cc && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14, flexWrap: 'wrap' }}>
+                  <span className="eyebrow" style={{ color: C.circuit }}>Circuit</span>
+                  <div style={{ flex: 1, height: 1, background: C.rack }} />
+                  <span className="mono" style={{ fontSize: 10, color: C.iron }}>
+                    {block.exerciseRestSec ?? 20}s BETWEEN - {block.roundRestSec ?? 90}s AFTER ROUND
+                  </span>
+                </div>
+              )}
 
               {exs.map((exId, exIdx) => {
                 const entry = entryOf(block.key, exId);
@@ -757,10 +811,10 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                 return (
                   <div key={exId} style={{ marginBottom: exIdx < exs.length - 1 ? 22 : 0 }}>
                     <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                      {ss && <div className="ss-node" style={{ marginTop: 0 }} />}
+                      {(ss || cc) && <div className="ss-node" style={{ marginTop: 0, borderColor: cc ? C.circuit : C.link }} />}
                       <div style={{ fontWeight: 700, fontSize: 15 }}>{nameOf(exId)}</div>
                     </div>
-                    <div className="mono" style={{ fontSize: 11, color: C.iron, margin: '6px 0 14px', paddingLeft: ss ? 26 : 0 }}>
+                    <div className="mono" style={{ fontSize: 11, color: C.iron, margin: '6px 0 14px', paddingLeft: (ss || cc) ? 26 : 0 }}>
                       {(block.mode === 'timed')
                         ? `TARGET ${fmtShort(block.targetSeconds || 0)}`
                         : `TARGET ${block.targetReps} REPS`} - LAST {prevFor(exId)}
@@ -768,7 +822,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
                     </div>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '30px 1fr 1fr 50px', gap: 8, marginBottom: 8 }}>
-                      <div className="eyebrow" style={{ textAlign: 'center' }}>{ss ? 'RD' : '#'}</div>
+                      <div className="eyebrow" style={{ textAlign: 'center' }}>{(ss || cc) ? 'RD' : '#'}</div>
                       <div className="eyebrow" style={{ textAlign: 'center' }}>{block.mode === 'timed' ? 'Time' : 'Reps'}</div>
                       <div className="eyebrow" style={{ textAlign: 'center' }}>Kg</div>
                       <div />
@@ -798,7 +852,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
               })}
 
               <button className="btn btn-ghost" style={{ width: '100%', marginTop: 14, padding: 10 }} onClick={() => addRound(block)}>
-                + {ss ? 'Round' : 'Set'} <span className="mono" style={{ opacity: .6 }}>({rounds})</span>
+                + {(ss || cc) ? 'Round' : 'Set'} <span className="mono" style={{ opacity: .6 }}>({rounds})</span>
               </button>
             </div>
           );
@@ -945,16 +999,18 @@ export default function App() {
                     <div className="mono" style={{ fontSize: 11, color: C.iron, marginBottom: 14 }}>
                       {p.blocks.reduce((n, b) => n + blockExercises(b).length, 0)} EXERCISES
                       {p.blocks.some(b => b.type === 'superset') && ` - ${p.blocks.filter(b => b.type === 'superset').length} SUPERSET`}
+                      {p.blocks.some(b => b.type === 'circuit') && ` - ${p.blocks.filter(b => b.type === 'circuit').length} CIRCUIT`}
                     </div>
 
                     <div style={{ marginBottom: 16 }}>
                       {p.blocks.map((b, i) => (
                         <div key={i} style={{ padding: '8px 0', borderBottom: i < p.blocks.length - 1 ? `1px solid ${C.rack}` : 'none' }}>
                           {b.type === 'superset' && <div className="eyebrow" style={{ color: C.link, marginBottom: 5 }}>Superset</div>}
+                          {b.type === 'circuit' && <div className="eyebrow" style={{ color: C.circuit, marginBottom: 5 }}>Circuit</div>}
                           {blockExercises(b).map((exId, j) => (
                             <div key={exId} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, padding: '2px 0' }}>
-                              <span style={{ color: C.chalk, paddingLeft: b.type === 'superset' ? 10 : 0,
-                                borderLeft: b.type === 'superset' ? `2px solid ${C.link}` : 'none' }}>{nameOf(exId)}</span>
+                              <span style={{ color: C.chalk, paddingLeft: (b.type === 'superset' || b.type === 'circuit') ? 10 : 0,
+                                borderLeft: b.type === 'superset' ? `2px solid ${C.link}` : (b.type === 'circuit' ? `2px solid ${C.circuit}` : 'none') }}>{nameOf(exId)}</span>
                               <span className="mono" style={{ color: C.iron, fontSize: 12, whiteSpace: 'nowrap', marginLeft: 12 }}>
                                 {j === 0 && (b.mode === 'timed' ? `${b.sets}x${fmtShort(b.targetSeconds || 0)}` : `${b.sets}x${b.targetReps}`)}
                                 {b.weights?.[exId] && ` @ ${b.weights[exId]}kg`}
@@ -1016,8 +1072,8 @@ export default function App() {
                   {open && (
                     <div style={{ marginTop: 18, paddingTop: 16, borderTop: `1px solid ${C.rack}` }}>
                       {s.entries.map((e, i) => (
-                        <div key={i} style={{ marginBottom: 16, paddingLeft: e.blockType === 'superset' ? 10 : 0,
-                          borderLeft: e.blockType === 'superset' ? `2px solid ${C.link}` : 'none' }}>
+                        <div key={i} style={{ marginBottom: 16, paddingLeft: (e.blockType === 'superset' || e.blockType === 'circuit') ? 10 : 0,
+                          borderLeft: e.blockType === 'superset' ? `2px solid ${C.link}` : (e.blockType === 'circuit' ? `2px solid ${C.circuit}` : 'none') }}>
                           <div style={{ fontSize: 13, fontWeight: 700, marginBottom: 8 }}>{nameOf(e.exerciseId)}</div>
                           {e.sets.map((x, j) => (
                             <div key={j} className="mono" style={{ display: 'flex', gap: 16, fontSize: 12, color: C.iron, padding: '3px 0' }}>
