@@ -160,8 +160,8 @@ const getAudioCtx = () => {
       if (!Ctx) return null;
       sharedAudioCtx = new Ctx();
     }
-    // iOS suspends the context until a user gesture resumes it; the Start/tick that led here counts.
-    if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume();
+    // iOS suspends the context until a user gesture resumes it; calling this from an onClick satisfies that.
+    if (sharedAudioCtx.state === 'suspended') sharedAudioCtx.resume().catch(() => {});
     return sharedAudioCtx;
   } catch { return null; }
 };
@@ -274,7 +274,7 @@ function TimerField({ targetSeconds, done }) {
   if (phase === 'idle') {
     return (
       <button className="btn btn-panel" style={{ width: '100%', padding: '11px 0', fontSize: 12 }}
-        onClick={() => { setRemaining(targetSeconds || 40); setPhase('running'); }}>
+        onClick={() => { getAudioCtx(); setRemaining(targetSeconds || 40); setPhase('running'); }}>
         Start {fmtShort(targetSeconds || 40)}
       </button>
     );
@@ -663,6 +663,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
 
   // Ticking a set: rest fires only when the LAST exercise of the block completes that round.
   const toggleDone = (block, exId, si) => {
+    getAudioCtx(); // unlock audio now, on this tap -- the later rest-alert fires from a timer, not a gesture
     const entry = entryOf(block.key, exId);
     const wasDone = entry.sets[si].done;
     const nextEntries = session.entries.map(e => (e.blockKey !== block.key || e.exerciseId !== exId) ? e : {
@@ -849,6 +850,7 @@ export default function App() {
   };
 
   const startSession = (plan) => {
+    getAudioCtx(); // unlock as early as possible -- this tap is the first gesture in the session
     const entries = [];
     plan.blocks.forEach(b => {
       blockExercises(b).forEach(exId => {
