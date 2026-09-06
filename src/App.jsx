@@ -250,21 +250,36 @@ function RestBar({ total, remaining, label, onSkip, onAdd }) {
 
 function TimerField({ targetSeconds, done }) {
   const [phase, setPhase] = useState('idle'); // idle | running | done_ringing
+  const [endsAt, setEndsAt] = useState(null); // wall-clock timestamp the countdown reaches zero
   const [remaining, setRemaining] = useState(targetSeconds || 40);
 
   useEffect(() => { if (phase === 'idle') setRemaining(targetSeconds || 40); }, [targetSeconds, phase]);
 
   useEffect(() => {
-    if (phase !== 'running') return;
-    if (remaining <= 0) {
-      setPhase('done_ringing');
-      try { navigator.vibrate?.([200, 100, 200, 100, 200]); } catch {}
-      playSetAlert();
-      return;
-    }
-    const t = setTimeout(() => setRemaining(r => r - 1), 1000);
-    return () => clearTimeout(t);
-  }, [phase, remaining]);
+    if (phase !== 'running' || !endsAt) return;
+
+    const check = () => {
+      const secsLeft = Math.ceil((endsAt - Date.now()) / 1000);
+      if (secsLeft <= 0) {
+        setRemaining(0);
+        setPhase('done_ringing');
+        try { navigator.vibrate?.([200, 100, 200, 100, 200]); } catch {}
+        playSetAlert();
+        return true; // finished
+      }
+      setRemaining(secsLeft);
+      return false;
+    };
+
+    if (check()) return;
+    const t = setInterval(() => { if (check()) clearInterval(t); }, 250);
+    // Re-check immediately when the tab becomes visible again -- iOS throttles
+    // timers while backgrounded, so time can pass with no tick firing at all;
+    // this catches the countdown up the instant the person returns.
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+  }, [phase, endsAt]);
 
   if (done) {
     return <div className="mono" style={{ textAlign: 'center', color: C.iron, fontSize: 13, paddingTop: 12 }}>
@@ -275,7 +290,13 @@ function TimerField({ targetSeconds, done }) {
   if (phase === 'idle') {
     return (
       <button className="btn btn-panel" style={{ width: '100%', padding: '11px 0', fontSize: 12 }}
-        onClick={() => { getAudioCtx(); setRemaining(targetSeconds || 40); setPhase('running'); }}>
+        onClick={() => {
+          getAudioCtx();
+          const dur = targetSeconds || 40;
+          setRemaining(dur);
+          setEndsAt(Date.now() + dur * 1000);
+          setPhase('running');
+        }}>
         Start {fmtShort(targetSeconds || 40)}
       </button>
     );
@@ -653,10 +674,27 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
 
   useEffect(() => {
     if (!rest) return;
-    if (rest.remaining <= 0) { setRest(null); try { navigator.vibrate?.(300); } catch {} playRestAlert(); return; }
-    const t = setTimeout(() => setRest(r => r && { ...r, remaining: r.remaining - 1 }), 1000);
-    return () => clearTimeout(t);
-  }, [rest]);
+
+    const check = () => {
+      const secsLeft = Math.ceil((rest.endsAt - Date.now()) / 1000);
+      if (secsLeft <= 0) {
+        setRest(null);
+        try { navigator.vibrate?.(300); } catch {}
+        playRestAlert();
+        return true;
+      }
+      setRest(r => r && { ...r, remaining: secsLeft });
+      return false;
+    };
+
+    if (check()) return;
+    const t = setInterval(() => { if (check()) clearInterval(t); }, 250);
+    // Same fix as TimerField: recheck the real clock the moment the tab
+    // becomes visible again, since backgrounded timers can't be trusted to fire on time.
+    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+  }, [rest?.endsAt]);
 
   const nameOf = id => library.find(e => e.id === id)?.name || 'Unknown';
 
@@ -711,7 +749,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
       const dur = isLastExercise ? (block.roundRestSec ?? 90) : (block.exerciseRestSec ?? 20);
       if (!dur) return;
       const label = isLastExercise ? `Round ${si + 1} complete` : nameOf(exId);
-      setRest({ total: dur, remaining: dur, label });
+      setRest({ total: dur, remaining: dur, endsAt: Date.now() + dur * 1000, label });
       return;
     }
 
@@ -725,7 +763,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
 
     if (roundComplete) {
       const label = block.type === 'superset' ? `Round ${si + 1}` : nameOf(exId);
-      setRest({ total: block.restSec, remaining: block.restSec, label });
+      setRest({ total: block.restSec, remaining: block.restSec, endsAt: Date.now() + block.restSec * 1000, label });
     }
   };
 
@@ -865,7 +903,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
       </div>
 
       {rest && <RestBar total={rest.total} remaining={rest.remaining} label={rest.label}
-        onSkip={() => setRest(null)} onAdd={n => setRest(r => ({ ...r, total: r.total + n, remaining: r.remaining + n }))} />}
+        onSkip={() => setRest(null)} onAdd={n => setRest(r => r && ({ ...r, total: r.total + n, remaining: r.remaining + n, endsAt: r.endsAt + n * 1000 }))} />}
     </div>
   );
 }
