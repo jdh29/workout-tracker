@@ -98,46 +98,48 @@ const PLATE_STEPS = [1.25, 2.5, 5];
    ============================================================ */
 
 const C = {
-  void: '#0B0B0C',
-  steel: '#16171A',
-  panel: '#1E2024',
-  chalk: '#F2F0EB',
-  iron: '#797D86',
-  load: '#E8412C',
-  rack: '#2E3036',
-  go: '#4ADE80',
-  link: '#5B93D3',
-  circuit: '#E8B23C',
+  void: '#1C1B16',
+  steel: '#211F19',
+  panel: '#2A2820',
+  chalk: '#E8DFC0',
+  iron: '#8C7A4A',
+  load: '#A85C3C',
+  rack: '#4A4636',
+  go: '#6B8F4E',
+  link: '#A89B72',
+  circuit: '#6B4226',
 };
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@500;600;700&family=Special+Elite&display=swap');
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-.wt { font-family: 'Archivo', system-ui, sans-serif; background: ${C.void}; color: ${C.chalk}; min-height: 100vh; }
-.mono { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; }
-.eyebrow { font-size: 10px; letter-spacing: 0.16em; text-transform: uppercase; color: ${C.iron}; font-weight: 600; }
-.wt input { font-family: 'IBM Plex Mono', monospace; font-variant-numeric: tabular-nums; background: ${C.void};
-  border: 1px solid ${C.rack}; color: ${C.chalk}; border-radius: 6px; padding: 10px 6px; font-size: 16px;
+.wt { font-family: 'Oswald', system-ui, sans-serif; background: ${C.void}; color: ${C.chalk}; min-height: 100vh; }
+.mono { font-family: 'Special Elite', monospace; font-variant-numeric: tabular-nums; }
+.eyebrow { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: ${C.iron}; font-weight: 600; font-family: 'Special Elite', monospace; }
+.wt input { font-family: 'Special Elite', monospace; font-variant-numeric: tabular-nums; background: ${C.void};
+  border: 2px solid ${C.rack}; color: ${C.chalk}; border-radius: 0; padding: 10px 6px; font-size: 16px;
   width: 100%; text-align: center; outline: none; }
 .wt input:focus { border-color: ${C.load}; }
 .wt input::-webkit-outer-spin-button, .wt input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
-.btn { font-family: 'Archivo', sans-serif; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
-  font-size: 12px; border: none; border-radius: 8px; padding: 14px 18px; cursor: pointer; transition: opacity .15s; }
+.btn { font-family: 'Oswald', sans-serif; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  font-size: 12px; border: none; border-radius: 0; padding: 14px 18px; cursor: pointer; transition: opacity .15s; }
 .btn:active { opacity: .7; }
-.btn-primary { background: ${C.chalk}; color: ${C.void}; }
-.btn-load { background: ${C.load}; color: #fff; }
-.btn-ghost { background: transparent; color: ${C.iron}; border: 1px solid ${C.rack}; }
-.btn-panel { background: ${C.panel}; color: ${C.chalk}; }
-.tapbar { position: sticky; bottom: 0; background: ${C.steel}; border-top: 1px solid ${C.rack}; display: flex; }
+.btn-primary { background: ${C.chalk}; color: ${C.void}; border: 2px solid ${C.chalk}; }
+.btn-load { background: ${C.load}; color: #fff; border: 2px solid ${C.load}; }
+.btn-ghost { background: transparent; color: ${C.iron}; border: 2px solid ${C.rack}; }
+.btn-panel { background: ${C.panel}; color: ${C.chalk}; border: 2px solid ${C.rack}; }
+.tapbar { position: sticky; bottom: 0; background: ${C.steel}; border-top: 3px double ${C.rack}; display: flex; }
 .tap { flex: 1; padding: 14px 4px calc(14px + env(safe-area-inset-bottom)); background: none; border: none;
-  color: ${C.iron}; font-family: 'Archivo'; font-weight: 700; font-size: 11px; letter-spacing: .1em;
+  color: ${C.iron}; font-family: 'Oswald'; font-weight: 700; font-size: 11px; letter-spacing: .12em;
   text-transform: uppercase; cursor: pointer; border-top: 2px solid transparent; }
-.tap.on { color: ${C.chalk}; border-top-color: ${C.load}; }
-.card { background: ${C.steel}; border: 1px solid ${C.rack}; border-radius: 10px; }
+.tap.on { color: ${C.chalk}; border-top-color: ${C.iron}; }
+.card { background: ${C.steel}; border: 2px solid ${C.rack}; border-radius: 0; position: relative; overflow: hidden; }
+.card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px;
+  background: repeating-linear-gradient(90deg, ${C.circuit}, ${C.circuit} 9px, ${C.steel} 9px, ${C.steel} 18px); opacity: .6; }
 .scroll::-webkit-scrollbar { display: none; }
-.ss-rail { position: absolute; left: 7px; top: 22px; bottom: 22px; width: 2px; background: ${C.link}; opacity: .5; }
-.ss-node { width: 16px; height: 16px; border-radius: 50%; border: 2px solid ${C.link}; background: ${C.steel};
-  flex-shrink: 0; margin-top: 3px; z-index: 1; }
+.ss-rail { position: absolute; left: 7px; top: 22px; bottom: 22px; width: 2px; background: ${C.link}; opacity: .6; }
+.ss-node { width: 16px; height: 16px; border-radius: 0; border: 2px solid ${C.link}; background: ${C.steel};
+  flex-shrink: 0; margin-top: 3px; z-index: 1; transform: rotate(45deg); }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
 `;
 
@@ -205,6 +207,32 @@ const playRestAlert = () => playTones([
   { freq: 1400, durMs: 220, gapMs: 0 },
 ]);
 
+// Watches a countdown to a fixed wall-clock target (endsAt), calling onDone once when it's reached.
+// iOS throttles or fully pauses page timers during many interruptions -- backgrounding, Control
+// Center, the app switcher -- and does not reliably fire any single event when each one ends. So
+// this checks the real clock on a short interval AND on every plausible "we might be back" event;
+// whichever notices first wins, and because the check is time-based (not a decrementing counter),
+// a missed tick just means the answer catches up correctly the next time anything checks at all.
+const watchCountdown = (endsAt, onTick, onDone) => {
+  let done = false;
+  const check = () => {
+    if (done) return;
+    const secsLeft = Math.ceil((endsAt - Date.now()) / 1000);
+    if (secsLeft <= 0) { done = true; onDone(); return; }
+    onTick(secsLeft);
+  };
+  check();
+  const interval = setInterval(check, 250);
+  const events = ['visibilitychange', 'focus', 'pageshow', 'resume'];
+  events.forEach(ev => window.addEventListener(ev, check));
+  document.addEventListener('visibilitychange', check);
+  return () => {
+    clearInterval(interval);
+    events.forEach(ev => window.removeEventListener(ev, check));
+    document.removeEventListener('visibilitychange', check);
+  };
+};
+
 // A block always exposes exercises[] -- singles just have one.
 const blockExercises = (b) => (b.type === 'superset' || b.type === 'circuit') ? b.exercises : [b.exercises[0]];
 
@@ -222,7 +250,7 @@ const isBlockComplete = (block, entries) => blockExercises(block).every(exId => 
 function RestBar({ total, remaining, label, onSkip, onAdd }) {
   const pct = total > 0 ? (remaining / total) * 100 : 0;
   return (
-    <div style={{ position: 'sticky', bottom: 0, zIndex: 20, background: C.steel, borderTop: `1px solid ${C.rack}` }}>
+    <div style={{ position: 'sticky', bottom: 0, zIndex: 20, background: C.steel, borderTop: `3px double ${C.rack}` }}>
       <div style={{ height: 3, background: C.rack }}>
         <div style={{ height: '100%', width: `${pct}%`, background: C.load, transition: 'width 1s linear' }} />
       </div>
@@ -257,28 +285,16 @@ function TimerField({ targetSeconds, done }) {
 
   useEffect(() => {
     if (phase !== 'running' || !endsAt) return;
-
-    const check = () => {
-      const secsLeft = Math.ceil((endsAt - Date.now()) / 1000);
-      if (secsLeft <= 0) {
+    return watchCountdown(
+      endsAt,
+      (secsLeft) => setRemaining(secsLeft),
+      () => {
         setRemaining(0);
         setPhase('done_ringing');
         try { navigator.vibrate?.([200, 100, 200, 100, 200]); } catch {}
         playSetAlert();
-        return true; // finished
       }
-      setRemaining(secsLeft);
-      return false;
-    };
-
-    if (check()) return;
-    const t = setInterval(() => { if (check()) clearInterval(t); }, 250);
-    // Re-check immediately when the tab becomes visible again -- iOS throttles
-    // timers while backgrounded, so time can pass with no tick firing at all;
-    // this catches the countdown up the instant the person returns.
-    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+    );
   }, [phase, endsAt]);
 
   if (done) {
@@ -389,15 +405,15 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, mode }) {
         <div style={{ display: 'flex', alignItems: 'center', marginBottom: 14 }}>
           <button className="btn btn-ghost" onClick={onClose}>Close</button>
           <div style={{ flex: 1, textAlign: 'center', fontWeight: 800, letterSpacing: '.08em', fontSize: 13, textTransform: 'uppercase' }}>
-            {multi ? 'Pick 2 or more' : 'Exercises'}
+            {multi ? 'Select 2 or more' : 'Roster'}
           </div>
           <button className="btn btn-ghost" onClick={() => setAdding(a => !a)}>{adding ? '-' : '+ New'}</button>
         </div>
 
         {adding && (
           <div className="card" style={{ padding: 14, marginBottom: 14 }}>
-            <div className="eyebrow" style={{ marginBottom: 8 }}>Add to library</div>
-            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Exercise name"
+            <div className="eyebrow" style={{ marginBottom: 8 }}>Add to roster</div>
+            <input value={newName} onChange={e => setNewName(e.target.value)} placeholder="Drill name"
               style={{ textAlign: 'left', marginBottom: 10 }} />
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
               {CATEGORIES.map(c => (
@@ -407,7 +423,7 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, mode }) {
                 </button>
               ))}
             </div>
-            <button className="btn btn-primary" style={{ width: '100%' }} onClick={commitCustom}>Save exercise</button>
+            <button className="btn btn-primary" style={{ width: '100%' }} onClick={commitCustom}>Log drill</button>
           </div>
         )}
 
@@ -429,10 +445,10 @@ function ExercisePicker({ library, onDone, onClose, onAddCustom, mode }) {
               return (
                 <button key={e.id} onClick={() => toggle(e)}
                   style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', borderBottom: `1px solid ${C.rack}`,
-                    color: C.chalk, padding: '15px 2px', fontSize: 15, fontFamily: 'Archivo', fontWeight: 500, cursor: 'pointer',
+                    color: C.chalk, padding: '15px 2px', fontSize: 15, fontFamily: 'Oswald', fontWeight: 500, cursor: 'pointer',
                     display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 10 }}>
                   <span style={{ flex: 1 }}>{e.name}</span>
-                  {e.custom && <span className="eyebrow" style={{ color: C.load }}>Custom</span>}
+                  {e.custom && <span className="eyebrow" style={{ color: C.load }}>Field-Added</span>}
                   {multi && (
                     <span className="mono" style={{ width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
                       border: `2px solid ${on ? C.link : C.rack}`, background: on ? C.link : 'transparent',
@@ -520,9 +536,9 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
           onClose={() => setPicking(null)} onAddCustom={ex => setCustoms(c => [...c, ex])} />
       )}
 
-      <div className="eyebrow" style={{ marginBottom: 8 }}>Plan name</div>
-      <input value={name} onChange={e => setName(e.target.value)} placeholder="Push Day"
-        style={{ textAlign: 'left', fontSize: 18, marginBottom: 28, fontFamily: 'Archivo', fontWeight: 700 }} />
+      <div className="eyebrow" style={{ marginBottom: 8 }}>Operation name</div>
+      <input value={name} onChange={e => setName(e.target.value)} placeholder="Operation Push Day"
+        style={{ textAlign: 'left', fontSize: 18, marginBottom: 28, fontFamily: 'Oswald', fontWeight: 700 }} />
 
       {blocks.map((b, i) => {
         const ss = b.type === 'superset';
@@ -650,7 +666,7 @@ function PlanEditor({ plan, library, onSave, onCancel }) {
       <div style={{ display: 'flex', gap: 10 }}>
         <button className="btn btn-ghost" style={{ flex: 1 }} onClick={onCancel}>Cancel</button>
         <button className="btn btn-primary" style={{ flex: 2, opacity: (!name.trim() || !blocks.length) ? .4 : 1 }} onClick={commit}>
-          Save plan
+          File Operation
         </button>
       </div>
     </div>
@@ -674,26 +690,15 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
 
   useEffect(() => {
     if (!rest) return;
-
-    const check = () => {
-      const secsLeft = Math.ceil((rest.endsAt - Date.now()) / 1000);
-      if (secsLeft <= 0) {
+    return watchCountdown(
+      rest.endsAt,
+      (secsLeft) => setRest(r => r && { ...r, remaining: secsLeft }),
+      () => {
         setRest(null);
         try { navigator.vibrate?.(300); } catch {}
         playRestAlert();
-        return true;
       }
-      setRest(r => r && { ...r, remaining: secsLeft });
-      return false;
-    };
-
-    if (check()) return;
-    const t = setInterval(() => { if (check()) clearInterval(t); }, 250);
-    // Same fix as TimerField: recheck the real clock the moment the tab
-    // becomes visible again, since backgrounded timers can't be trusted to fire on time.
-    const onVisible = () => { if (document.visibilityState === 'visible') check(); };
-    document.addEventListener('visibilitychange', onVisible);
-    return () => { clearInterval(t); document.removeEventListener('visibilitychange', onVisible); };
+    );
   }, [rest?.endsAt]);
 
   const nameOf = id => library.find(e => e.id === id)?.name || 'Unknown';
@@ -792,12 +797,12 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
           <div className="eyebrow">Sets</div>
           <div className="mono" style={{ fontSize: 18, fontWeight: 600 }}>{doneSets}<span style={{ color: C.iron }}>/{totalSets}</span></div>
         </div>
-        <button className="btn btn-load" onClick={() => onFinish(session)}>Finish</button>
+        <button className="btn btn-load" onClick={() => onFinish(session)}>Stand Down</button>
       </div>
 
       <div style={{ padding: '20px 16px 32px', flex: 1 }}>
         <div style={{ marginBottom: 24 }}>
-          <div className="eyebrow">Now training</div>
+          <div className="eyebrow">In the field</div>
           <div style={{ fontSize: 28, fontWeight: 800, letterSpacing: '-0.01em' }}>{plan.name}</div>
         </div>
 
@@ -822,7 +827,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
             }}>
               {isCurrent && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
-                  <span className="eyebrow" style={{ color: C.load }}>Current</span>
+                  <span className="eyebrow" style={{ color: C.load }}>Active</span>
                   <div style={{ flex: 1, height: 1, background: C.rack }} />
                 </div>
               )}
@@ -898,7 +903,7 @@ function Session({ session, plan, library, sessions, onUpdate, onFinish, onAband
         })()}
 
         <button className="btn btn-ghost" style={{ width: '100%', marginTop: 16, color: C.load, borderColor: C.load }} onClick={onAbandon}>
-          Discard session
+          Abort Operation
         </button>
       </div>
 
@@ -993,9 +998,9 @@ export default function App() {
             ? <Session session={active} plan={activePlan} library={library} sessions={sessions}
                 onUpdate={setActive} onFinish={finish} onAbandon={() => { setActive(null); setTab('plans'); }} />
             : <div style={{ flex: 1, padding: '80px 24px', textAlign: 'center' }}>
-                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>Nothing in progress</div>
-                <div style={{ color: C.iron, fontSize: 14, marginBottom: 28, lineHeight: 1.5 }}>Pick a plan to start logging sets.</div>
-                <button className="btn btn-primary" onClick={() => setTab('plans')}>Go to plans</button>
+                <div style={{ fontSize: 22, fontWeight: 800, marginBottom: 10 }}>No active operation</div>
+                <div style={{ color: C.iron, fontSize: 14, marginBottom: 28, lineHeight: 1.5 }}>Select an operation to begin.</div>
+                <button className="btn btn-primary" onClick={() => setTab('plans')}>View operations</button>
               </div>
         )}
 
@@ -1011,8 +1016,8 @@ export default function App() {
             : <div style={{ flex: 1, padding: '24px 16px 32px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28 }}>
                   <div>
-                    <div className="eyebrow">Library - {library.length} exercises</div>
-                    <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em' }}>Plans</div>
+                    <div className="eyebrow">Loadout - {library.length} drills</div>
+                    <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em' }}>Operations</div>
                   </div>
                   <button className="btn btn-primary" onClick={() => setEditing('new')}>+ New</button>
                 </div>
@@ -1020,14 +1025,14 @@ export default function App() {
                 {active && (
                   <button onClick={() => setTab('train')} className="card"
                     style={{ width: '100%', padding: 16, marginBottom: 20, textAlign: 'left', cursor: 'pointer', borderColor: C.load }}>
-                    <div className="eyebrow" style={{ color: C.load }}>In progress</div>
-                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 4 }}>{active.planName} -- resume</div>
+                    <div className="eyebrow" style={{ color: C.load }}>Underway</div>
+                    <div style={{ fontWeight: 700, fontSize: 16, marginTop: 4 }}>{active.planName} -- rejoin</div>
                   </button>
                 )}
 
                 {plans.length === 0 && (
                   <div style={{ color: C.iron, fontSize: 14, lineHeight: 1.6, padding: '40px 0', textAlign: 'center' }}>
-                    No plans yet. Build one, then start it from here.
+                    No operations on file. Draft one, then deploy it from here.
                   </div>
                 )}
 
@@ -1035,7 +1040,7 @@ export default function App() {
                   <div key={p.id} className="card" style={{ padding: 16, marginBottom: 12 }}>
                     <div style={{ fontWeight: 700, fontSize: 17, marginBottom: 4 }}>{p.name}</div>
                     <div className="mono" style={{ fontSize: 11, color: C.iron, marginBottom: 14 }}>
-                      {p.blocks.reduce((n, b) => n + blockExercises(b).length, 0)} EXERCISES
+                      {p.blocks.reduce((n, b) => n + blockExercises(b).length, 0)} DRILLS
                       {p.blocks.some(b => b.type === 'superset') && ` - ${p.blocks.filter(b => b.type === 'superset').length} SUPERSET`}
                       {p.blocks.some(b => b.type === 'circuit') && ` - ${p.blocks.filter(b => b.type === 'circuit').length} CIRCUIT`}
                     </div>
@@ -1062,10 +1067,10 @@ export default function App() {
                     <div style={{ display: 'flex', gap: 8 }}>
                       <button className="btn btn-ghost" onClick={() => setEditing(p)}>Edit</button>
                       <button className="btn btn-ghost" style={{ color: C.load }}
-                        onClick={() => { if (confirm(`Delete "${p.name}"?`)) setPlans(x => x.filter(y => y.id !== p.id)); }}>Delete</button>
+                        onClick={() => { if (confirm(`Scrap "${p.name}"?`)) setPlans(x => x.filter(y => y.id !== p.id)); }}>Scrap</button>
                       <div style={{ flex: 1 }} />
                       <button className="btn btn-primary" disabled={!!active} style={{ opacity: active ? .4 : 1 }}
-                        onClick={() => startSession(p)}>Start</button>
+                        onClick={() => startSession(p)}>Deploy</button>
                     </div>
                   </div>
                 ))}
@@ -1076,15 +1081,15 @@ export default function App() {
           <div style={{ flex: 1, padding: '24px 16px 32px' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 28 }}>
               <div>
-                <div className="eyebrow">{sessions.length} sessions logged</div>
-                <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em' }}>History</div>
+                <div className="eyebrow">{sessions.length} operations logged</div>
+                <div style={{ fontSize: 30, fontWeight: 800, letterSpacing: '-0.02em' }}>Logbook</div>
               </div>
               <button className="btn btn-ghost" onClick={exportData}>Export</button>
             </div>
 
             {sessions.length === 0 && (
               <div style={{ color: C.iron, fontSize: 14, lineHeight: 1.6, padding: '40px 0', textAlign: 'center' }}>
-                Finished sessions land here. Export regularly -- this data lives on this device only.
+                Completed operations are logged here. Export regularly -- this record lives on this device only.
               </div>
             )}
 
@@ -1098,9 +1103,9 @@ export default function App() {
                     style={{ width: '100%', background: 'none', border: 'none', color: C.chalk, textAlign: 'left', cursor: 'pointer', padding: 0 }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                       <div>
-                        <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'Archivo' }}>{s.planName}</div>
+                        <div style={{ fontWeight: 700, fontSize: 16, fontFamily: 'Oswald' }}>{s.planName}</div>
                         <div className="mono" style={{ fontSize: 11, color: C.iron, marginTop: 4 }}>
-                          {fmtDate(s.startedAt).toUpperCase()} - {mins} MIN - {showWeight(volume)} KG VOLUME
+                          {fmtDate(s.startedAt).toUpperCase()} - {mins} MIN - {showWeight(volume)} KG MOVED
                         </div>
                       </div>
                       <span style={{ color: C.iron, fontSize: 18 }}>{open ? '-' : '+'}</span>
@@ -1125,8 +1130,8 @@ export default function App() {
                         </div>
                       ))}
                       <button className="btn btn-ghost" style={{ color: C.load, marginTop: 4 }}
-                        onClick={() => { if (confirm('Delete this session?')) setSessions(p => p.filter(y => y.id !== s.id)); }}>
-                        Delete session
+                        onClick={() => { if (confirm('Strike this record from the logbook?')) setSessions(p => p.filter(y => y.id !== s.id)); }}>
+                        Strike record
                       </button>
                     </div>
                   )}
@@ -1138,7 +1143,7 @@ export default function App() {
 
         {!(tab === 'train' && active) && !editing && (
           <div className="tapbar">
-            {[['train', 'Train'], ['plans', 'Plans'], ['history', 'History']].map(([k, label]) => (
+            {[['train', 'Train'], ['plans', 'Operations'], ['history', 'Logbook']].map(([k, label]) => (
               <button key={k} className={`tap ${tab === k ? 'on' : ''}`} onClick={() => setTab(k)}>
                 {label}{k === 'train' && active ? ' -' : ''}
               </button>
