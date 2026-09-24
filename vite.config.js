@@ -11,8 +11,8 @@ export default defineConfig({
         name: 'Workout Tracker',
         short_name: 'Workout',
         description: 'Personal workout planner and session logger',
-        theme_color: '#0B0B0C',
-        background_color: '#0B0B0C',
+        theme_color: '#1C1B16',
+        background_color: '#1C1B16',
         display: 'standalone',
         start_url: '/',
         icons: [
